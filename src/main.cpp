@@ -408,10 +408,14 @@ lv_obj_t *ui_IRCloneListContainer = nullptr;
 lv_obj_t *ui_IRCloneLabel = nullptr;
 lv_obj_t *ui_IRCloneTitle = nullptr;
 
+const int BT_CONFIG_COUNT = 15;
 lv_obj_t *ui_BTConfigContainer = nullptr;     // [NEW] BT 설정 모드 컨테이너
 lv_obj_t *ui_BTConfigListContainer = nullptr; // [NEW] 리스트 스크롤용 컨테이너
-lv_obj_t *ui_BTConfigLabel = nullptr;         // [NEW] BT 설정 모드 라벨
+lv_obj_t *ui_BTConfigItemLabels[BT_CONFIG_COUNT] = {nullptr}; // [NEW] 항목별 라벨
 lv_obj_t *ui_BTConfigTitle = nullptr;         // [NEW] 제목용 라벨
+lv_obj_t *ui_BTConfigDescContainer = nullptr; // [NEW] 하단 설명 컨테이너
+lv_obj_t *ui_BTConfigDescLabel = nullptr;     // [NEW] 하단 실시간 한글 설명 라벨
+lv_obj_t *ui_BTConfigKeyGuideLabel = nullptr; // [NEW] 하단 버튼 가이드 라벨
 
 int btConfigIndex = 0; // [NEW] BT 설정 항목 인덱스 (0~5)
 
@@ -3322,136 +3326,211 @@ void updateBTConfigDisplay() {
   if (!ui_BTConfigContainer) {
     ui_BTConfigContainer = lv_obj_create(lv_scr_act());
     lv_obj_set_size(ui_BTConfigContainer, 135, 240);
-    lv_obj_set_style_bg_color(ui_BTConfigContainer, lv_color_hex(0x222222),
-                              0); // 어두운 회색
+    lv_obj_set_style_bg_color(ui_BTConfigContainer, lv_color_hex(0x181818), 0);
     lv_obj_set_style_bg_opa(ui_BTConfigContainer, LV_OPA_COVER, 0);
     lv_obj_set_style_border_width(ui_BTConfigContainer, 0, 0);
     lv_obj_set_style_radius(ui_BTConfigContainer, 0, 0);
     lv_obj_set_align(ui_BTConfigContainer, LV_ALIGN_CENTER);
-    lv_obj_set_scrollbar_mode(ui_BTConfigContainer,
-                              LV_SCROLLBAR_MODE_OFF); // 스크롤바 제거
+    lv_obj_set_scrollbar_mode(ui_BTConfigContainer, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_set_style_pad_all(ui_BTConfigContainer, 0, 0);
 
+    // 상단 타이틀
     ui_BTConfigTitle = lv_label_create(ui_BTConfigContainer);
     lv_obj_set_width(ui_BTConfigTitle, 135);
     lv_obj_set_style_text_color(ui_BTConfigTitle, lv_color_hex(0xFFFF00), 0);
     lv_obj_set_style_text_font(ui_BTConfigTitle, &ui_font_Font1, 0);
     lv_obj_set_style_text_align(ui_BTConfigTitle, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_align(ui_BTConfigTitle, LV_ALIGN_TOP_MID);
-    lv_obj_set_style_pad_top(ui_BTConfigTitle, 10, 0);
-    lv_obj_set_style_bg_color(ui_BTConfigTitle, lv_color_hex(0x222222), 0);
-    lv_obj_set_style_bg_opa(ui_BTConfigTitle, LV_OPA_COVER, 0);
+    lv_obj_set_y(ui_BTConfigTitle, 3);
     lv_label_set_text(ui_BTConfigTitle, "BT CONFIG");
 
-    // 리스트 전용 컨테이너
+    // 리스트 전용 컨테이너 (높이 165px, y: 24)
     ui_BTConfigListContainer = lv_obj_create(ui_BTConfigContainer);
-    lv_obj_set_size(ui_BTConfigListContainer, 135, 210);
+    lv_obj_set_size(ui_BTConfigListContainer, 135, 165);
     lv_obj_set_align(ui_BTConfigListContainer, LV_ALIGN_TOP_MID);
-    lv_obj_set_y(ui_BTConfigListContainer, 28); // 35 -> 28로 올려서 제목과 밀착
+    lv_obj_set_y(ui_BTConfigListContainer, 24);
     lv_obj_set_style_bg_opa(ui_BTConfigListContainer, 0, 0);
     lv_obj_set_style_border_width(ui_BTConfigListContainer, 0, 0);
+    lv_obj_set_style_pad_all(ui_BTConfigListContainer, 0, 0);
     lv_obj_set_scrollbar_mode(ui_BTConfigListContainer, LV_SCROLLBAR_MODE_OFF);
 
-    ui_BTConfigLabel = lv_label_create(ui_BTConfigListContainer);
-    lv_obj_set_width(ui_BTConfigLabel, 130);
-    lv_obj_set_style_text_color(ui_BTConfigLabel, lv_color_hex(0xFFFFFF), 0);
-    lv_obj_set_style_text_font(ui_BTConfigLabel, &ui_font_Font1, 0);
-    lv_obj_set_style_text_align(ui_BTConfigLabel, LV_TEXT_ALIGN_LEFT, 0);
-    lv_obj_set_align(ui_BTConfigLabel, LV_ALIGN_TOP_LEFT);
-    lv_obj_set_style_pad_left(ui_BTConfigLabel, 5,
-                              0); // 10 -> 5로 줄여서 좌측으로 붙임
+    for (int i = 0; i < BT_CONFIG_COUNT; i++) {
+      ui_BTConfigItemLabels[i] = lv_label_create(ui_BTConfigListContainer);
+      lv_obj_set_width(ui_BTConfigItemLabels[i], 125);
+      lv_obj_set_style_text_font(ui_BTConfigItemLabels[i], &ui_font_Font1, 0);
+      lv_obj_set_style_text_align(ui_BTConfigItemLabels[i], LV_TEXT_ALIGN_LEFT, 0);
+      lv_obj_set_x(ui_BTConfigItemLabels[i], 5);
+      lv_obj_set_y(ui_BTConfigItemLabels[i], i * 18);
+    }
+
+    // 하단 상세 설명 및 가이드 패널 (y: 191, h: 47)
+    ui_BTConfigDescContainer = lv_obj_create(ui_BTConfigContainer);
+    lv_obj_set_size(ui_BTConfigDescContainer, 131, 46);
+    lv_obj_set_align(ui_BTConfigDescContainer, LV_ALIGN_BOTTOM_MID);
+    lv_obj_set_y(ui_BTConfigDescContainer, -2);
+    lv_obj_set_style_bg_color(ui_BTConfigDescContainer, lv_color_hex(0x101626), 0);
+    lv_obj_set_style_bg_opa(ui_BTConfigDescContainer, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_color(ui_BTConfigDescContainer, lv_color_hex(0x00AACC), 0);
+    lv_obj_set_style_border_width(ui_BTConfigDescContainer, 1, 0);
+    lv_obj_set_style_radius(ui_BTConfigDescContainer, 4, 0);
+    lv_obj_set_style_pad_all(ui_BTConfigDescContainer, 2, 0);
+    lv_obj_set_scrollbar_mode(ui_BTConfigDescContainer, LV_SCROLLBAR_MODE_OFF);
+
+    // 하단 실시간 한글 티커 라벨 (위쪽 20px)
+    ui_BTConfigDescLabel = lv_label_create(ui_BTConfigDescContainer);
+    lv_obj_set_width(ui_BTConfigDescLabel, 125);
+    lv_obj_set_style_text_color(ui_BTConfigDescLabel, lv_color_hex(0x00FFCC), 0);
+    lv_obj_set_style_text_font(ui_BTConfigDescLabel, &ui_font_Font16, 0);
+    lv_obj_set_style_text_align(ui_BTConfigDescLabel, LV_TEXT_ALIGN_LEFT, 0);
+    lv_obj_set_align(ui_BTConfigDescLabel, LV_ALIGN_TOP_MID);
+    lv_obj_set_y(ui_BTConfigDescLabel, 1);
+    lv_label_set_long_mode(ui_BTConfigDescLabel, LV_LABEL_LONG_SCROLL_CIRCULAR);
+
+    // 하단 조작 안내 라벨 (아래쪽)
+    ui_BTConfigKeyGuideLabel = lv_label_create(ui_BTConfigDescContainer);
+    lv_obj_set_width(ui_BTConfigKeyGuideLabel, 125);
+    lv_obj_set_style_text_color(ui_BTConfigKeyGuideLabel, lv_color_hex(0x8899AA), 0);
+    lv_obj_set_style_text_font(ui_BTConfigKeyGuideLabel, &ui_font_Font1, 0);
+    lv_obj_set_style_text_align(ui_BTConfigKeyGuideLabel, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_align(ui_BTConfigKeyGuideLabel, LV_ALIGN_BOTTOM_MID);
+    lv_obj_set_y(ui_BTConfigKeyGuideLabel, 0);
+    lv_label_set_text(ui_BTConfigKeyGuideLabel, "(A:Change, B:Next)");
   }
 
   lv_obj_clear_flag(ui_BTConfigContainer, LV_OBJ_FLAG_HIDDEN);
   lv_obj_move_to_index(ui_BTConfigContainer, -1);
 
-  String configText = "";
+  struct ConfigItemInfo {
+    String shortText;
+    String fullText;
+    String descText;
+  };
 
-  // 1. Device Name (moved to top, removed "DevName:")
-  configText += (btConfigIndex == 0) ? ">" : " ";
-  configText += String(BT_DEVICE_NAME) + "\n";
+  ConfigItemInfo items[BT_CONFIG_COUNT];
 
-  // 2. Bluetooth
-  configText += (btConfigIndex == 1) ? ">BT: " : " BT: ";
-  configText += (bluetoothEnabled) ? "ON\n" : "OFF\n";
+  // 0. Device Name
+  items[0].shortText = " Dev: " + String(BT_DEVICE_NAME);
+  items[0].fullText  = "> Device Name: " + String(BT_DEVICE_NAME);
+  items[0].descText  = "[기기 이름] 블루투스 검색 시 표시되는 기기명";
 
-  // 3. Sound
-  configText += (btConfigIndex == 2) ? ">Sound: " : " Sound: ";
-  configText += (soundEnabled) ? "ON\n" : "OFF\n";
+  // 1. Bluetooth
+  items[1].shortText = (bluetoothEnabled) ? " BT: ON" : " BT: OFF";
+  items[1].fullText  = (bluetoothEnabled) ? "> Bluetooth: ON" : "> Bluetooth: OFF";
+  items[1].descText  = "[블루투스] 스마트폰 연결 및 무선 제어 ON/OFF";
 
-  // 4. Volume
-  configText += (btConfigIndex == 3) ? ">Vol: " : " Vol: ";
+  // 2. Sound
+  items[2].shortText = (soundEnabled) ? " Sound: ON" : " Sound: OFF";
+  items[2].fullText  = (soundEnabled) ? "> Sound Buzzer: ON" : "> Sound Buzzer: OFF";
+  items[2].descText  = "[효과음] 버튼 및 동작 알림 부저음 ON/OFF";
+
+  // 3. Volume
   {
     Preferences pref;
     prefsBegin(pref, "settings", true);
     int v = pref.getInt("vol", 30);
-    configText += String(v) + "\n";
     pref.end();
+    items[3].shortText = " Vol: " + String(v);
+    items[3].fullText  = "> Buzzer Volume: " + String(v);
+    items[3].descText  = "[볼륨] 효과음 부저 소리 크기 조절 (0~100)";
   }
 
-  // 5. Max Brightness
-  configText += (btConfigIndex == 4) ? ">MaxBri: " : " MaxBri: ";
-  configText += String(current_brightness) + "\n";
+  // 4. Max Brightness
+  items[4].shortText = " MaxBri: " + String(current_brightness);
+  items[4].fullText  = "> Max Brightness: " + String(current_brightness);
+  items[4].descText  = "[최대 밝기] 평상시 사용하는 화면 밝기 (10~255)";
 
-  // 6. Min Brightness
-  configText += (btConfigIndex == 5) ? ">MinBri: " : " MinBri: ";
-  configText += String(min_brightness) + "\n";
+  // 5. Min Brightness
+  items[5].shortText = " MinBri: " + String(min_brightness);
+  items[5].fullText  = "> Min Brightness: " + String(min_brightness);
+  items[5].descText  = "[최소 밝기] A+B 버튼 또는 절전 시 적용 밝기 (5~255)";
 
-  // 7. Dim Time
-  configText += (btConfigIndex == 6) ? ">DimTime: " : " DimTime: ";
-  if (dimTimeSec > 0)
-    configText += String(dimTimeSec) + "s\n";
-  else
-    configText += "OFF\n";
+  // 6. Dim Time
+  if (dimTimeSec > 0) {
+    items[6].shortText = " DimTime: " + String(dimTimeSec) + "s";
+    items[6].fullText  = "> Auto Dimming: " + String(dimTimeSec) + "s";
+  } else {
+    items[6].shortText = " DimTime: OFF";
+    items[6].fullText  = "> Auto Dimming: OFF";
+  }
+  items[6].descText = "[자동 디밍] 미입력 시 최소밝기 전환 대기시간";
 
-  // 8. Auto Time
-  configText += (btConfigIndex == 7) ? ">Auto: " : " Auto: ";
-  if (autoTransitionEnabled)
-    configText += String(autoTransitionInterval / 1000) + "s\n";
-  else
-    configText += "OFF\n";
+  // 7. Auto Time
+  if (autoTransitionEnabled) {
+    items[7].shortText = " Auto: " + String(autoTransitionInterval / 1000) + "s";
+    items[7].fullText  = "> Auto Word Interval: " + String(autoTransitionInterval / 1000) + "s";
+  } else {
+    items[7].shortText = " Auto: OFF";
+    items[7].fullText  = "> Auto Word Interval: OFF";
+  }
+  items[7].descText = "[단어 자동 넘김] 다음 단어로 자동 전환되는 간격 시간";
 
-  // 9. Slim Time
-  configText += (btConfigIndex == 8) ? ">Slim: " : " Slim: ";
-  if (slimModeTime > 0)
-    configText += String(slimModeTime) + "m\n";
-  else
-    configText += "OFF\n";
+  // 8. Slim Time
+  if (slimModeTime > 0) {
+    items[8].shortText = " Slim: " + String(slimModeTime) + "m";
+    items[8].fullText  = "> Sleep Screen Off: " + String(slimModeTime) + "m";
+  } else {
+    items[8].shortText = " Slim: OFF";
+    items[8].fullText  = "> Sleep Screen Off: OFF";
+  }
+  items[8].descText = "[화면 끄기 절전] 미입력 시 화면 완전히 꺼지는 대기시간";
 
-  // 10. LED
-  configText += (btConfigIndex == 9) ? ">LED: " : " LED: ";
-  configText += (digitalRead(10) == LOW) ? "ON\n" : "OFF\n";
+  // 9. LED
+  bool ledOn = (digitalRead(10) == LOW);
+  items[9].shortText = ledOn ? " LED: ON" : " LED: OFF";
+  items[9].fullText  = ledOn ? "> Front Red LED: ON" : "> Front Red LED: OFF";
+  items[9].descText  = "[전면 LED] 앞면 빨간색 LED 표시등 켜기/끄기";
 
-  // 11. Auto Dir
-  configText += (btConfigIndex == 10) ? ">AutoDir: " : " AutoDir: ";
-  configText += (btnADirectionForward) ? "FWD\n" : "BWD\n";
+  // 10. Auto Dir
+  items[10].shortText = (btnADirectionForward) ? " AutoDir: FWD" : " AutoDir: BWD";
+  items[10].fullText  = (btnADirectionForward) ? "> Word Direction: FWD" : "> Word Direction: BWD";
+  items[10].descText  = "[단어 넘김 방향] 단어 넘김 기본 방향 (정방향/역방향)";
 
-  // 12. BT Hold Time
-  configText += (btConfigIndex == 11) ? ">BTHold: " : " BTHold: ";
-  configText += String(btHoldTime) + "s\n";
+  // 11. BT Hold Time
+  items[11].shortText = " BTHold: " + String(btHoldTime) + "s";
+  items[11].fullText  = "> BT Menu Hold Time: " + String(btHoldTime) + "s";
+  items[11].descText  = "[BT설정 진입] B버튼 길게 눌러 BT메뉴 들어가는 시간";
 
-  // 13. Secret Hold Time
-  configText += (btConfigIndex == 12) ? ">SecHold: " : " SecHold: ";
-  configText += String(secretHoldTime) + "s\n";
+  // 12. Secret Hold Time
+  items[12].shortText = " SecHold: " + String(secretHoldTime) + "s";
+  items[12].fullText  = "> Secret Hold Time: " + String(secretHoldTime) + "s";
+  items[12].descText  = "[시크릿 모드] B버튼 길게 눌러 시크릿모드 들어가는 시간";
 
-  // 14. A Dir Time
-  configText += (btConfigIndex == 13) ? ">ADir: " : " ADir: ";
-  configText += String(aBtnDirTime) + "s\n";
+  // 13. A Dir Time
+  items[13].shortText = " ADir: " + String(aBtnDirTime) + "s";
+  items[13].fullText  = "> A Long: Flip Dir Time: " + String(aBtnDirTime) + "s";
+  items[13].descText  = "[A버튼 방향반전] A버튼 길게 눌러 넘김방향 바꿀 때 시간";
 
-  // 15. A Auto Time
-  configText += (btConfigIndex == 14) ? ">AAuto: " : " AAuto: ";
-  configText += String(aBtnAutoTime) + "s\n";
+  // 14. A Auto Time
+  items[14].shortText = " AAuto: " + String(aBtnAutoTime) + "s";
+  items[14].fullText  = "> A Long: Auto Run Time: " + String(aBtnAutoTime) + "s";
+  items[14].descText  = "[A버튼 자동실행] A버튼 길게 눌러 단어 자동넘김 켤 때 시간";
 
-  configText += "\n(A: Change, B: Next)";
-
-  lv_label_set_text(ui_BTConfigLabel, configText.c_str());
-  lv_obj_set_style_text_line_space(ui_BTConfigLabel, 3, 0); // 줄 간격 축소
-
-  // 스크롤 계산 (Montserrat 14 폰트 높이 + 라인 스페이스 기준 약 17px씩 이동)
+  // 스크롤 오프셋 계산 (컨테이너 높이 165px, 각 항목 18px)
   int scrollY = 0;
   if (btConfigIndex > 4) {
-    scrollY = (btConfigIndex - 4) * 17;
+    scrollY = (btConfigIndex - 4) * 18;
+    int maxScroll = BT_CONFIG_COUNT * 18 - 165;
+    if (scrollY > maxScroll) scrollY = maxScroll;
   }
-  lv_obj_set_y(ui_BTConfigLabel, 5 - scrollY);
+  if (scrollY < 0) scrollY = 0;
+
+  for (int i = 0; i < BT_CONFIG_COUNT; i++) {
+    lv_obj_set_y(ui_BTConfigItemLabels[i], i * 18 - scrollY);
+    if (i == btConfigIndex) {
+      lv_obj_set_style_text_color(ui_BTConfigItemLabels[i], lv_color_hex(0xFFFF00), 0);
+      lv_label_set_long_mode(ui_BTConfigItemLabels[i], LV_LABEL_LONG_SCROLL_CIRCULAR);
+      lv_label_set_text(ui_BTConfigItemLabels[i], items[i].fullText.c_str());
+    } else {
+      lv_obj_set_style_text_color(ui_BTConfigItemLabels[i], lv_color_hex(0xBBBBBB), 0);
+      lv_label_set_long_mode(ui_BTConfigItemLabels[i], LV_LABEL_LONG_CLIP);
+      lv_label_set_text(ui_BTConfigItemLabels[i], items[i].shortText.c_str());
+    }
+  }
+
+  // 하단 실시간 한글 설명 갱신
+  if (btConfigIndex >= 0 && btConfigIndex < BT_CONFIG_COUNT) {
+    lv_label_set_text(ui_BTConfigDescLabel, items[btConfigIndex].descText.c_str());
+  }
 }
 
 // ─────────────────────────────────────────────────────────
