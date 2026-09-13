@@ -869,8 +869,9 @@ static uint8_t normal_brightness = 25;  // 최대 밝기 토글 전 밝기 저�
 static uint8_t min_brightness = 5;      // [NEW] 최소 / 디밍 밝기 (0~30)
 static int dimTimeSec = 15;             // [NEW] 최소 밝기로 전환되는 무활동 시간 (초단위, 0=OFF)
 static bool isDimmed = false;          // 화면 디밍(어두워짐) 상태 플래그
+static bool isManualMinBright = false;  // [NEW] A+B로 수동 최소 밝기 모드 고정 여부
 static uint8_t preDimBrightness = 25;  // 디밍 진입 전의 원래 밝기 백업용
-static unsigned long lastBothBtnsAction = 0; // [NEW] A+B 토글 직후 릴리즈 시 디밍 해제 방지용
+static unsigned long lastBothBtnsAction = 0; // A+B 토글 직후 릴리즈 시 디밍 해제 방지용
 uint32_t currentCpuFreq = 240;         // 현재 CPU 목표 주파수
 
 void setSystemClock(uint32_t mhz) {
@@ -4438,8 +4439,9 @@ void loop() {
     // [중요] wasPressed에서는 디밍을 풀지 않음 (A+B 동시 누름 시 찰나의 시간차로 인한 밝아짐 방지)
   } else if (M5.BtnA.wasReleased() || M5.BtnB.wasReleased()) {
     lastActivityTime = millis();
-    // A+B 동시 조작이 아닌 순수 단일 버튼 클릭 완료 시에만 디밍 해제
-    if (isDimmed && !isBothPressed && !justBothHandled) {
+    // [중요] 사용자가 A+B로 수동 최소 밝기를 설정한 경우(!isManualMinBright)가 아닐 때만,
+    // 즉 자동 디밍으로 어두워졌을 때만 단일 버튼 클릭으로 최대 밝기로 복원!
+    if (isDimmed && !isManualMinBright && !isBothPressed && !justBothHandled) {
       isDimmed = false;
       uint8_t restoreBright = (current_brightness > 0) ? current_brightness : 25;
       M5.Display.setBrightness(restoreBright);
@@ -7465,20 +7467,22 @@ void loop() {
 
     // 0.35초 이상 동시 누르면 최대 밝기 <-> 최소 밝기 토글
     if (dur >= 350 && bothBtnsLevel < 1) {
-      if (isDimmed) {
-        // [현재 최소(디밍) 상태 -> 최대 밝기로 전환]
+      if (isManualMinBright || isDimmed) {
+        // [현재 최소 상태 -> 최대 밝기로 전환 & 수동 모드 해제]
+        isManualMinBright = false;
         isDimmed = false;
         uint8_t targetMax = (current_brightness > 0) ? current_brightness : 25;
         M5.Display.setBrightness(targetMax);
         soundWake();
         Serial.printf("[BTN A+B] Toggled to MAX Brightness (%d)\n", targetMax);
       } else {
-        // [현재 최대 상태 -> 최소 밝기로 전환]
+        // [현재 최대 상태 -> 수동 최소 밝기 모드로 고정 (단일 버튼 눌러도 유지)]
+        isManualMinBright = true;
         isDimmed = true;
         preDimBrightness = current_brightness;
         M5.Display.setBrightness(min_brightness);
         soundBeep();
-        Serial.printf("[BTN A+B] Toggled to MIN Brightness (%d)\n", min_brightness);
+        Serial.printf("[BTN A+B] Toggled to MANUAL MIN Brightness (%d)\n", min_brightness);
       }
       lastBothBtnsAction = millis(); // 릴리즈 시 디밍 해제 방지
       bothBtnsLevel = 1;
