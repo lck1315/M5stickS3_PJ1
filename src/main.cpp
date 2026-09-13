@@ -7984,8 +7984,10 @@ void loop() {
   btnA_prev = btnA_curr;
   btnB_prev = btnB_curr;
 
-  // [OPTIMIZE] 동적 루프 딜레이: 화면 디밍(무활동) 또는 화면 OFF 시 딜레이를 80ms로 늘려 CPU IDLE 전력 절감
-  uint32_t loopDelay = (isDimmed || !screenOn) ? 80 : 30;
+  // [OPTIMIZE] 동적 루프 딜레이: 화면 무활동 디밍 또는 화면 OFF 시에만 80ms로 전력 절감
+  // 사용자가 A+B로 수동 최소 밝기를 켜고 조작 중일 때(!isManualMinBright)는 30ms 풀성능 유지!
+  bool isIdleLowPower = (!screenOn || (isDimmed && !isManualMinBright));
+  uint32_t loopDelay = isIdleLowPower ? 80 : 30;
   delay(loopDelay);
 
   // ── BT Config 설정 고속 변경 후 지연 저장 ──────────────────────────
