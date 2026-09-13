@@ -1303,10 +1303,16 @@ void updateSecretMenuDisplay() {
       // 1) 번호는 밝은 노란색
       lv_obj_set_style_text_color(ui_SecretRows[i].numLabel, lv_color_hex(0xFFFF00), 0);
 
-      // 2) 이름 라벨은 노란색 + 원형 슬라이드 롤링
+      // 2) 이름 라벨은 노란색 + 원형 슬라이드 롤링 (처음 800ms 멈춘 후 스르륵 슬라이드)
       lv_obj_set_style_text_color(ui_SecretRows[i].nameLabel, lv_color_hex(0xFFFF00), 0);
       lv_label_set_long_mode(ui_SecretRows[i].nameLabel, LV_LABEL_LONG_SCROLL_CIRCULAR);
       lv_label_set_text(ui_SecretRows[i].nameLabel, items[i].fullName.c_str());
+
+      lv_anim_t * a = lv_anim_get(ui_SecretRows[i].nameLabel, NULL);
+      if (a) {
+        a->act_time = -800;
+        a->repeat_delay = 800;
+      }
     } else {
       // 비선택 항목:
       // 1) 번호는 어두운 회색
@@ -3524,9 +3530,9 @@ void updateBTConfigDisplay() {
 
   ConfigItemData items[BT_CONFIG_COUNT];
 
-  // 1. Device Name (예외: 슬라이드 없이 고정)
-  items[0].shortName = "DevName";
-  items[0].fullName  = "DevName";
+  // 1. Device Name (예외: 슬라이드 없이 '1. Dev'로 표기)
+  items[0].shortName = "Dev";
+  items[0].fullName  = "Dev";
   items[0].valText   = String(BT_DEVICE_NAME);
   items[0].descText  = "[기기 이름: " + String(BT_DEVICE_NAME) + "] 블루투스 검색 시 표시되는 기기명";
 
@@ -3642,18 +3648,20 @@ void updateBTConfigDisplay() {
 
     if (i == 0) {
       // ── 0번 항목: 디바이스 이름 변경 (사용자 요청 예외 처리) ─────────
-      // 슬라이드 애니메이션 없이 고정 표시하며, 선택 시 색상만 변경
+      // "1. Dev"로 표기하여 디바이스 설정 이름(값) 영역을 최대(90px)로 확보, 슬라이드 없이 고정
       char numBuf[8];
       snprintf(numBuf, sizeof(numBuf), "%d.", i + 1);
+      lv_obj_set_x(ui_BTConfigRows[i].numLabel, 2);
+      lv_obj_set_width(ui_BTConfigRows[i].numLabel, 15);
       lv_label_set_text(ui_BTConfigRows[i].numLabel, numBuf);
 
       lv_obj_set_x(ui_BTConfigRows[i].nameLabel, 17);
-      lv_obj_set_width(ui_BTConfigRows[i].nameLabel, 56);
+      lv_obj_set_width(ui_BTConfigRows[i].nameLabel, 26);
       lv_label_set_long_mode(ui_BTConfigRows[i].nameLabel, LV_LABEL_LONG_CLIP);
       lv_label_set_text(ui_BTConfigRows[i].nameLabel, items[i].shortName.c_str());
 
-      lv_obj_set_x(ui_BTConfigRows[i].valLabel, 74);
-      lv_obj_set_width(ui_BTConfigRows[i].valLabel, 59);
+      lv_obj_set_x(ui_BTConfigRows[i].valLabel, 43);
+      lv_obj_set_width(ui_BTConfigRows[i].valLabel, 90);
       lv_obj_set_style_text_align(ui_BTConfigRows[i].valLabel, LV_TEXT_ALIGN_RIGHT, 0);
       lv_label_set_long_mode(ui_BTConfigRows[i].valLabel, LV_LABEL_LONG_CLIP);
       lv_label_set_text(ui_BTConfigRows[i].valLabel, items[i].valText.c_str());
@@ -3674,12 +3682,19 @@ void updateBTConfigDisplay() {
       // 1) 앞의 번호는 숨김 (이름 슬라이드 폭 확보)
       lv_label_set_text(ui_BTConfigRows[i].numLabel, "");
 
-      // 2) 이름 라벨: 폭 90px 확장, 항상 맨 처음부터 스르륵 슬라이드! (노란색)
+      // 2) 이름 라벨: 폭 90px 확장 (노란색)
       lv_obj_set_x(ui_BTConfigRows[i].nameLabel, 2);
       lv_obj_set_width(ui_BTConfigRows[i].nameLabel, 90);
       lv_obj_set_style_text_color(ui_BTConfigRows[i].nameLabel, lv_color_hex(0xFFFF00), 0);
       lv_label_set_long_mode(ui_BTConfigRows[i].nameLabel, LV_LABEL_LONG_SCROLL_CIRCULAR);
       lv_label_set_text(ui_BTConfigRows[i].nameLabel, items[i].fullName.c_str());
+
+      // 멈췄다가 슬라이드 시작: 800ms 동안 처음 글자에서 멈춘 뒤 스르륵 슬라이드!
+      lv_anim_t * a = lv_anim_get(ui_BTConfigRows[i].nameLabel, NULL);
+      if (a) {
+        a->act_time = -800;      // 선택 직후 800ms 정지 후 슬라이드 시작
+        a->repeat_delay = 800;  // 한 바퀴 돌고 나서도 800ms 정지
+      }
 
       // 3) 설정 값 라벨: 우측 고정 (시안색)
       lv_obj_set_x(ui_BTConfigRows[i].valLabel, 93);
@@ -3693,6 +3708,8 @@ void updateBTConfigDisplay() {
       // 1) 앞의 번호 정상 표시 (2. ~ 15.)
       char numBuf[8];
       snprintf(numBuf, sizeof(numBuf), "%d.", i + 1);
+      lv_obj_set_x(ui_BTConfigRows[i].numLabel, 2);
+      lv_obj_set_width(ui_BTConfigRows[i].numLabel, 17);
       lv_obj_set_style_text_color(ui_BTConfigRows[i].numLabel, lv_color_hex(0x666666), 0);
       lv_label_set_text(ui_BTConfigRows[i].numLabel, numBuf);
 
