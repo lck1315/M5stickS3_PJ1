@@ -1291,6 +1291,9 @@ void updateSecretMenuDisplay() {
     lv_obj_set_y(ui_SecretRows[i].numLabel, yPos);
     lv_obj_set_y(ui_SecretRows[i].nameLabel, yPos);
 
+    // 이전 애니메이션 삭제하여 항상 처음부터 스르륵 슬라이드 시작
+    lv_anim_del(ui_SecretRows[i].nameLabel, NULL);
+
     char numBuf[8];
     snprintf(numBuf, sizeof(numBuf), "%d.", i); // 0. ~ 8. 기존 번호 형식 유지
     lv_label_set_text(ui_SecretRows[i].numLabel, numBuf);
@@ -3521,9 +3524,9 @@ void updateBTConfigDisplay() {
 
   ConfigItemData items[BT_CONFIG_COUNT];
 
-  // 1. Device Name
-  items[0].shortName = "Dev";
-  items[0].fullName  = "Device Name";
+  // 1. Device Name (예외: 슬라이드 없이 고정)
+  items[0].shortName = "DevName";
+  items[0].fullName  = "DevName";
   items[0].valText   = String(BT_DEVICE_NAME);
   items[0].descText  = "[기기 이름: " + String(BT_DEVICE_NAME) + "] 블루투스 검색 시 표시되는 기기명";
 
@@ -3633,64 +3636,79 @@ void updateBTConfigDisplay() {
     lv_obj_set_y(ui_BTConfigRows[i].nameLabel, yPos);
     lv_obj_set_y(ui_BTConfigRows[i].valLabel, yPos);
 
-    char numBuf[8];
-    snprintf(numBuf, sizeof(numBuf), "%d.", i + 1);
-    lv_label_set_text(ui_BTConfigRows[i].numLabel, numBuf);
+    // 이전 애니메이션을 완전 삭제하여 오프셋 초기화 (선택 시 항상 맨 처음부터 스르륵 슬라이드 시작)
+    lv_anim_del(ui_BTConfigRows[i].nameLabel, NULL);
+    lv_anim_del(ui_BTConfigRows[i].valLabel, NULL);
 
-    bool isValLong = (items[i].valText.length() > 4); // 디바이스 이름 등 긴 값 감지
+    if (i == 0) {
+      // ── 0번 항목: 디바이스 이름 변경 (사용자 요청 예외 처리) ─────────
+      // 슬라이드 애니메이션 없이 고정 표시하며, 선택 시 색상만 변경
+      char numBuf[8];
+      snprintf(numBuf, sizeof(numBuf), "%d.", i + 1);
+      lv_label_set_text(ui_BTConfigRows[i].numLabel, numBuf);
 
-    if (i == btConfigIndex) {
-      // 선택 항목:
-      // 1) 앞의 번호는 사라짐 (이름 영역으로 병합)
+      lv_obj_set_x(ui_BTConfigRows[i].nameLabel, 17);
+      lv_obj_set_width(ui_BTConfigRows[i].nameLabel, 56);
+      lv_label_set_long_mode(ui_BTConfigRows[i].nameLabel, LV_LABEL_LONG_CLIP);
+      lv_label_set_text(ui_BTConfigRows[i].nameLabel, items[i].shortName.c_str());
+
+      lv_obj_set_x(ui_BTConfigRows[i].valLabel, 74);
+      lv_obj_set_width(ui_BTConfigRows[i].valLabel, 59);
+      lv_obj_set_style_text_align(ui_BTConfigRows[i].valLabel, LV_TEXT_ALIGN_RIGHT, 0);
+      lv_label_set_long_mode(ui_BTConfigRows[i].valLabel, LV_LABEL_LONG_CLIP);
+      lv_label_set_text(ui_BTConfigRows[i].valLabel, items[i].valText.c_str());
+
+      if (i == btConfigIndex) {
+        // 선택 시: 노란색(번호/이름) + 시안색(설정값)
+        lv_obj_set_style_text_color(ui_BTConfigRows[i].numLabel, lv_color_hex(0xFFFF00), 0);
+        lv_obj_set_style_text_color(ui_BTConfigRows[i].nameLabel, lv_color_hex(0xFFFF00), 0);
+        lv_obj_set_style_text_color(ui_BTConfigRows[i].valLabel, lv_color_hex(0x00FFFF), 0);
+      } else {
+        // 비선택 시: 회색
+        lv_obj_set_style_text_color(ui_BTConfigRows[i].numLabel, lv_color_hex(0x666666), 0);
+        lv_obj_set_style_text_color(ui_BTConfigRows[i].nameLabel, lv_color_hex(0xAAAAAA), 0);
+        lv_obj_set_style_text_color(ui_BTConfigRows[i].valLabel, lv_color_hex(0xAAAAAA), 0);
+      }
+    } else if (i == btConfigIndex) {
+      // ── 1~14번 일반 항목 선택 시 ──────────────────────────────────
+      // 1) 앞의 번호는 숨김 (이름 슬라이드 폭 확보)
       lv_label_set_text(ui_BTConfigRows[i].numLabel, "");
 
-      // 2) 이름 라벨이 우측으로 16px 더 늘어난 90px 대형 폭으로 이름만 시원하게 슬라이드!
+      // 2) 이름 라벨: 폭 90px 확장, 항상 맨 처음부터 스르륵 슬라이드! (노란색)
       lv_obj_set_x(ui_BTConfigRows[i].nameLabel, 2);
       lv_obj_set_width(ui_BTConfigRows[i].nameLabel, 90);
       lv_obj_set_style_text_color(ui_BTConfigRows[i].nameLabel, lv_color_hex(0xFFFF00), 0);
       lv_label_set_long_mode(ui_BTConfigRows[i].nameLabel, LV_LABEL_LONG_SCROLL_CIRCULAR);
       lv_label_set_text(ui_BTConfigRows[i].nameLabel, items[i].fullName.c_str());
 
-      // 3) 설정 값은 오른쪽에 고정 (시안색 0x00FFFF)
+      // 3) 설정 값 라벨: 우측 고정 (시안색)
       lv_obj_set_x(ui_BTConfigRows[i].valLabel, 93);
       lv_obj_set_width(ui_BTConfigRows[i].valLabel, 40);
       lv_obj_set_style_text_color(ui_BTConfigRows[i].valLabel, lv_color_hex(0x00FFFF), 0);
-      if (isValLong) {
-        // 디바이스 이름처럼 내용이 긴 경우 설정값 자체도 따로 스르륵 슬라이드!
-        lv_obj_set_style_text_align(ui_BTConfigRows[i].valLabel, LV_TEXT_ALIGN_LEFT, 0);
-        lv_label_set_long_mode(ui_BTConfigRows[i].valLabel, LV_LABEL_LONG_SCROLL_CIRCULAR);
-      } else {
-        // 일반 짧은 설정값(255, ON, 5s 등)은 우측 정렬 고정
-        lv_obj_set_style_text_align(ui_BTConfigRows[i].valLabel, LV_TEXT_ALIGN_RIGHT, 0);
-        lv_label_set_long_mode(ui_BTConfigRows[i].valLabel, LV_LABEL_LONG_CLIP);
-      }
+      lv_obj_set_style_text_align(ui_BTConfigRows[i].valLabel, LV_TEXT_ALIGN_RIGHT, 0);
+      lv_label_set_long_mode(ui_BTConfigRows[i].valLabel, LV_LABEL_LONG_CLIP);
       lv_label_set_text(ui_BTConfigRows[i].valLabel, items[i].valText.c_str());
     } else {
-      // 비선택 항목:
-      // 1) 앞의 번호 정상 표시 (1. ~ 15.)
+      // ── 1~14번 일반 항목 비선택 시 ────────────────────────────────
+      // 1) 앞의 번호 정상 표시 (2. ~ 15.)
       char numBuf[8];
       snprintf(numBuf, sizeof(numBuf), "%d.", i + 1);
       lv_obj_set_style_text_color(ui_BTConfigRows[i].numLabel, lv_color_hex(0x666666), 0);
       lv_label_set_text(ui_BTConfigRows[i].numLabel, numBuf);
 
-      // 2) 이름 라벨은 x: 19, 폭 72px에 축약명 고정
+      // 2) 이름 라벨: x: 19, 폭 72px 축약명 고정 (회색)
       lv_obj_set_x(ui_BTConfigRows[i].nameLabel, 19);
       lv_obj_set_width(ui_BTConfigRows[i].nameLabel, 72);
       lv_obj_set_style_text_color(ui_BTConfigRows[i].nameLabel, lv_color_hex(0xAAAAAA), 0);
       lv_label_set_long_mode(ui_BTConfigRows[i].nameLabel, LV_LABEL_LONG_CLIP);
       lv_label_set_text(ui_BTConfigRows[i].nameLabel, items[i].shortName.c_str());
 
-      // 3) 설정 값 라벨 (x: 93, w: 40)
+      // 3) 설정 값 라벨: x: 93, 폭 40px 고정 (회색)
       lv_obj_set_x(ui_BTConfigRows[i].valLabel, 93);
       lv_obj_set_width(ui_BTConfigRows[i].valLabel, 40);
       lv_obj_set_style_text_color(ui_BTConfigRows[i].valLabel, lv_color_hex(0xAAAAAA), 0);
-      if (isValLong) {
-        lv_obj_set_style_text_align(ui_BTConfigRows[i].valLabel, LV_TEXT_ALIGN_LEFT, 0);
-        lv_label_set_long_mode(ui_BTConfigRows[i].valLabel, LV_LABEL_LONG_SCROLL_CIRCULAR);
-      } else {
-        lv_obj_set_style_text_align(ui_BTConfigRows[i].valLabel, LV_TEXT_ALIGN_RIGHT, 0);
-        lv_label_set_long_mode(ui_BTConfigRows[i].valLabel, LV_LABEL_LONG_CLIP);
-      }
+      lv_obj_set_style_text_align(ui_BTConfigRows[i].valLabel, LV_TEXT_ALIGN_RIGHT, 0);
+      lv_label_set_long_mode(ui_BTConfigRows[i].valLabel, LV_LABEL_LONG_CLIP);
       lv_label_set_text(ui_BTConfigRows[i].valLabel, items[i].valText.c_str());
     }
   }
