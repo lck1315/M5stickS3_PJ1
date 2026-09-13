@@ -3458,31 +3458,31 @@ void updateBTConfigDisplay() {
     lv_obj_set_scrollbar_mode(ui_BTConfigListContainer, LV_SCROLLBAR_MODE_OFF);
 
     for (int i = 0; i < BT_CONFIG_COUNT; i++) {
-      // 1. 번호 라벨 (x: 2, w: 18, 고정, 줄바꿈 방지)
+      // 1. 번호 라벨 (x: 2, w: 17, 고정, 줄바꿈 방지)
       ui_BTConfigRows[i].numLabel = lv_label_create(ui_BTConfigListContainer);
-      lv_obj_set_width(ui_BTConfigRows[i].numLabel, 18);
+      lv_obj_set_width(ui_BTConfigRows[i].numLabel, 17);
       lv_obj_set_style_text_font(ui_BTConfigRows[i].numLabel, &ui_font_Font1, 0);
       lv_obj_set_style_text_align(ui_BTConfigRows[i].numLabel, LV_TEXT_ALIGN_LEFT, 0);
       lv_label_set_long_mode(ui_BTConfigRows[i].numLabel, LV_LABEL_LONG_CLIP);
       lv_obj_set_x(ui_BTConfigRows[i].numLabel, 2);
       lv_obj_set_y(ui_BTConfigRows[i].numLabel, i * 18);
 
-      // 2. 설정 이름 라벨 (x: 22, 비선택 시 44, 선택 시 110으로 확장)
+      // 2. 설정 이름 라벨 (비선택 시 x:19, w:56 / 선택 시 x:2, w:74로 동적 이동)
       ui_BTConfigRows[i].nameLabel = lv_label_create(ui_BTConfigListContainer);
-      lv_obj_set_width(ui_BTConfigRows[i].nameLabel, 44);
+      lv_obj_set_width(ui_BTConfigRows[i].nameLabel, 56);
       lv_obj_set_style_text_font(ui_BTConfigRows[i].nameLabel, &ui_font_Font1, 0);
       lv_obj_set_style_text_align(ui_BTConfigRows[i].nameLabel, LV_TEXT_ALIGN_LEFT, 0);
       lv_label_set_long_mode(ui_BTConfigRows[i].nameLabel, LV_LABEL_LONG_CLIP);
-      lv_obj_set_x(ui_BTConfigRows[i].nameLabel, 22);
+      lv_obj_set_x(ui_BTConfigRows[i].nameLabel, 19);
       lv_obj_set_y(ui_BTConfigRows[i].nameLabel, i * 18);
 
-      // 3. 설정 값 라벨 (x: 66, w: 67, 우측 정렬, M5S3_00의 M 잘림 완벽 방지)
+      // 3. 설정 값 라벨 (x: 76, w: 57, 항상 우측 고정! M 잘림 방지)
       ui_BTConfigRows[i].valLabel = lv_label_create(ui_BTConfigListContainer);
-      lv_obj_set_width(ui_BTConfigRows[i].valLabel, 67);
+      lv_obj_set_width(ui_BTConfigRows[i].valLabel, 57);
       lv_obj_set_style_text_font(ui_BTConfigRows[i].valLabel, &ui_font_Font1, 0);
       lv_obj_set_style_text_align(ui_BTConfigRows[i].valLabel, LV_TEXT_ALIGN_RIGHT, 0);
       lv_label_set_long_mode(ui_BTConfigRows[i].valLabel, LV_LABEL_LONG_CLIP);
-      lv_obj_set_x(ui_BTConfigRows[i].valLabel, 66);
+      lv_obj_set_x(ui_BTConfigRows[i].valLabel, 76);
       lv_obj_set_y(ui_BTConfigRows[i].valLabel, i * 18);
     }
 
@@ -3639,29 +3639,39 @@ void updateBTConfigDisplay() {
 
     if (i == btConfigIndex) {
       // 선택 항목:
-      // 1) 번호는 밝은 노란색
-      lv_obj_set_style_text_color(ui_BTConfigRows[i].numLabel, lv_color_hex(0xFFFF00), 0);
+      // 1) 앞의 번호는 사라짐 (이름 영역으로 병합)
+      lv_label_set_text(ui_BTConfigRows[i].numLabel, "");
 
-      // 2) 숫자는 사라짐 (값 라벨 빈 문자열)
-      lv_label_set_text(ui_BTConfigRows[i].valLabel, "");
-
-      // 3) 이름 라벨이 우측 숫자 영역까지 대폭 확장 (폭 110px) 되어 이름이 최대한 많이 보임!
-      lv_obj_set_width(ui_BTConfigRows[i].nameLabel, 110);
+      // 2) 이름 라벨이 앞 번호 자리(x: 2)부터 우측 설정값 앞까지(폭 74px) 넓어져 이름만 슬라이드!
+      lv_obj_set_x(ui_BTConfigRows[i].nameLabel, 2);
+      lv_obj_set_width(ui_BTConfigRows[i].nameLabel, 74);
       lv_obj_set_style_text_color(ui_BTConfigRows[i].nameLabel, lv_color_hex(0xFFFF00), 0);
       lv_label_set_long_mode(ui_BTConfigRows[i].nameLabel, LV_LABEL_LONG_SCROLL_CIRCULAR);
       lv_label_set_text(ui_BTConfigRows[i].nameLabel, items[i].fullName.c_str());
+
+      // 3) 설정 값은 오른쪽에 항상 고정! A버튼 누를 때 바뀌는 값이 즉시 확인됨!
+      lv_obj_set_x(ui_BTConfigRows[i].valLabel, 76);
+      lv_obj_set_width(ui_BTConfigRows[i].valLabel, 57);
+      lv_obj_set_style_text_color(ui_BTConfigRows[i].valLabel, lv_color_hex(0x00FFFF), 0);
+      lv_label_set_text(ui_BTConfigRows[i].valLabel, items[i].valText.c_str());
     } else {
       // 비선택 항목:
-      // 1) 번호는 어두운 회색
+      // 1) 앞의 번호 정상 표시 (1. ~ 15.)
+      char numBuf[8];
+      snprintf(numBuf, sizeof(numBuf), "%d.", i + 1);
       lv_obj_set_style_text_color(ui_BTConfigRows[i].numLabel, lv_color_hex(0x666666), 0);
+      lv_label_set_text(ui_BTConfigRows[i].numLabel, numBuf);
 
-      // 2) 이름 라벨은 기본 44px 폭에 축약 이름
-      lv_obj_set_width(ui_BTConfigRows[i].nameLabel, 44);
+      // 2) 이름 라벨은 x: 19, 폭 56px에 축약명 고정
+      lv_obj_set_x(ui_BTConfigRows[i].nameLabel, 19);
+      lv_obj_set_width(ui_BTConfigRows[i].nameLabel, 56);
       lv_obj_set_style_text_color(ui_BTConfigRows[i].nameLabel, lv_color_hex(0xAAAAAA), 0);
       lv_label_set_long_mode(ui_BTConfigRows[i].nameLabel, LV_LABEL_LONG_CLIP);
       lv_label_set_text(ui_BTConfigRows[i].nameLabel, items[i].shortName.c_str());
 
-      // 3) 값 라벨 복원 (67px 너비로 M 글자 잘림 완벽 방지)
+      // 3) 설정 값 라벨 정상 표시 (x: 76, w: 57, M 글자 잘림 방지)
+      lv_obj_set_x(ui_BTConfigRows[i].valLabel, 76);
+      lv_obj_set_width(ui_BTConfigRows[i].valLabel, 57);
       lv_obj_set_style_text_color(ui_BTConfigRows[i].valLabel, lv_color_hex(0xAAAAAA), 0);
       lv_label_set_text(ui_BTConfigRows[i].valLabel, items[i].valText.c_str());
     }
