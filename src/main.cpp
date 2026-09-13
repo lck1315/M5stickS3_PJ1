@@ -870,6 +870,7 @@ static uint8_t min_brightness = 5;      // [NEW] 최소 / 디밍 밝기 (0~30)
 static int dimTimeSec = 15;             // [NEW] 최소 밝기로 전환되는 무활동 시간 (초단위, 0=OFF)
 static bool isDimmed = false;          // 화면 디밍(어두워짐) 상태 플래그
 static bool isManualMinBright = false;  // [NEW] A+B로 수동 최소 밝기 모드 고정 여부
+static bool savedBrightStateBeforeConfig = false; // [NEW] 설정 메뉴 진입 전 밝기 상태 백업
 static uint8_t preDimBrightness = 25;  // 디밍 진입 전의 원래 밝기 백업용
 static unsigned long lastBothBtnsAction = 0; // A+B 토글 직후 릴리즈 시 디밍 해제 방지용
 uint32_t currentCpuFreq = 240;         // 현재 CPU 목표 주파수
@@ -7001,6 +7002,7 @@ void loop() {
           // 3번: BT Config 모드 진입
           currentAppMode = MODE_BT_CONFIG;
           btConfigIndex = 0;
+          savedBrightStateBeforeConfig = isManualMinBright; // [NEW] 진입 전 밝기 상태 백업
           soundSuccess();
           if (ui_SecretContainer)
             lv_obj_add_flag(ui_SecretContainer, LV_OBJ_FLAG_HIDDEN);
@@ -7144,12 +7146,21 @@ void loop() {
         btnBLongPressHandled = true;
         lastActivityTime = millis();
 
+        // [NEW] BT Config 나가기 전, 진입 전의 원래 밝기 상태로 100% 복원!
+        isManualMinBright = savedBrightStateBeforeConfig;
+        isDimmed = savedBrightStateBeforeConfig;
+        if (savedBrightStateBeforeConfig) {
+          M5.Display.setBrightness(min_brightness);
+        } else {
+          M5.Display.setBrightness(current_brightness);
+        }
+
         if (ui_BTConfigContainer)
           lv_obj_add_flag(ui_BTConfigContainer, LV_OBJ_FLAG_HIDDEN);
 
         updateSecretMenuDisplay();
         soundSuccess();
-        Serial.println("[MODE] BT Config -> SECRET MENU (B Hold)");
+        Serial.println("[MODE] BT Config -> SECRET MENU (B Hold, Restored brightness)");
       } else if (currentAppMode == MODE_IR_REMOTE) {
 
         // [MOD] IR Remote -> SECRET MENU
@@ -7383,8 +7394,27 @@ void loop() {
       } else if (currentAppMode == MODE_BT_CONFIG) {
         // [NEW] BT 설정 항목 이동 (B 버튼)
         lastActivityTime = millis();
-        M5.Display.setBrightness(current_brightness);
         btConfigIndex = (btConfigIndex + 1) % 15; // 0~14
+
+        // 4번(MaxBri)일 때는 MaxBri 설정값 확인을 위해 current_brightness 표시
+        // 5번(MinBri)일 때는 MinBri 설정값 확인을 위해 min_brightness 표시
+        // 그 외의 항목들은 메뉴 진입 전 원래 밝기 상태 유지!
+        if (btConfigIndex == 4) {
+          M5.Display.setBrightness(current_brightness);
+        } else if (btConfigIndex == 5) {
+          M5.Display.setBrightness(min_brightness);
+        } else {
+          if (savedBrightStateBeforeConfig) {
+            M5.Display.setBrightness(min_brightness);
+            isManualMinBright = true;
+            isDimmed = true;
+          } else {
+            M5.Display.setBrightness(current_brightness);
+            isManualMinBright = false;
+            isDimmed = false;
+          }
+        }
+
         updateBTConfigDisplay();
         soundBeep();
         Serial.printf("[BT CONFIG] Navigated to item %d\n", btConfigIndex);
