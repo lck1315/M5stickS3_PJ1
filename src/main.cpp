@@ -3977,6 +3977,8 @@ void setup() {
     if (min_brightness == 0) min_brightness = 5;
     if (min_brightness > 255) min_brightness = 255;
     dimTimeSec = pref.getInt("dim_time", 15);
+    isManualMinBright = pref.getBool("min_mode", true); // 최초 밝기 기본값: min 밝기 (true)
+    isDimmed = isManualMinBright;
     pref.end();
   }
 
@@ -3989,8 +3991,9 @@ void setup() {
   cfg.external_spk = false;
   M5.begin(cfg);
 
-  // [NEW] 화면 밝기를 M5.begin 직후 가장 먼저 적용하여 100% 밝기 섬광 현상 방지
-  M5.Display.setBrightness(current_brightness);
+  // [NEW] 화면 밝기를 M5.begin 직후 최종 밝기 상태(최초 기본: min)로 가장 먼저 적용
+  uint8_t bootBright = isManualMinBright ? min_brightness : current_brightness;
+  M5.Display.setBrightness(bootBright);
 
   // [OPTIMIZE] 배터리 절약: 5V Boost(ExtOutput)는 평상시 OFF 유지 (IR 송신 시에만 켬)
   M5.Power.setExtOutput(false);
@@ -4038,7 +4041,8 @@ void setup() {
   //   lv_obj_set_y(ui_SoundLabel, -113);
   // }
 
-  set_backlight_brightness(current_brightness);
+  uint8_t bootBright2 = isManualMinBright ? min_brightness : current_brightness;
+  M5.Display.setBrightness(bootBright2);
   delay(10);
 
   // Preferences 접근 전 충분한 초기화 시간 (LVGL 안정화)
@@ -4069,6 +4073,8 @@ void setup() {
     if (min_brightness == 0) min_brightness = 5;
     if (min_brightness > 255) min_brightness = 255;
     dimTimeSec = pref.getInt("dim_time", 15);
+    isManualMinBright = pref.getBool("min_mode", true);
+    isDimmed = isManualMinBright;
     aBtnDirTime = pref.getInt("adirtime", 1);
     aBtnAutoTime = pref.getInt("aautotime", 2);
 
@@ -4271,6 +4277,7 @@ void saveSettings() {
   pref.putInt("bright", current_brightness);
   pref.putInt("min_bright", min_brightness);
   pref.putInt("dim_time", dimTimeSec);
+  pref.putBool("min_mode", isManualMinBright); // [NEW] 최종 밝기 토글 상태 저장
   pref.putInt("adirtime", aBtnDirTime);
   pref.putInt("aautotime", aBtnAutoTime);
   pref.putInt("vol", M5.Speaker.getVolume());
@@ -7515,6 +7522,7 @@ void loop() {
         Serial.printf("[BTN A+B] Toggled to MANUAL MIN Brightness (%d)\n", min_brightness);
       }
       lastBothBtnsAction = millis(); // 릴리즈 시 디밍 해제 방지
+      saveSettings();                // [NEW] 최종 밝기 상태를 NVS에 즉시 영구 저장!
       bothBtnsLevel = 1;
       btnALongPressHandled = true; // 밝기 토글 시 A버튼 단일 클릭 효과 방지
       btnBLongPressHandled = true; // 밝기 토글 시 B버튼 단일 클릭 효과 방지
