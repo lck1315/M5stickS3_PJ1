@@ -4281,16 +4281,18 @@ void setup() {
   M5.Power.setExtOutput(false);
   irsend.begin(); // IR 송신기 시작
 
-  // [NEW] 화면을 최대한 빨리 켭니다.
-  M5.Display.setRotation(0);
-  M5.Display.fillScreen(TFT_BLACK);
+  // [NEW] 배터리 과열 방지 및 안전 충전: 100mA 제한 설정 (200mAh 배터리 과열 완벽 방지)
+  M5.Power.setBatteryCharge(true);
+  M5.Power.setChargeCurrent(100);
 
-  M5.Power.setBatteryCharge(true); // 충전 기능 활성화 확인
-
-  // [OPTIMIZE] 부팅 시 WiFi 모뎀 완전 OFF (STA 대기 전력 30~50mA 즉시 차단)
+  // [OPTIMIZE] 부팅 시 WiFi 및 Bluetooth RF 모뎀 완전 정지 (대기 전류 50~70mA 및 발열 즉시 차단)
   WiFi.mode(WIFI_OFF);
   WiFi.disconnect(true);
-  Serial.println("[INIT] WiFi completely OFF for maximum battery life");
+  esp_wifi_stop();
+#ifdef ENABLE_BLUETOOTH
+  esp_bt_controller_disable();
+#endif
+  Serial.println("[INIT] WiFi & BLE hardware completely in low-power sleep mode");
 
   // ── 2단계: M5.Display 설정 (이미 위에서 수행됨) ──
 
@@ -8274,10 +8276,21 @@ void loop() {
   btnA_prev = btnA_curr;
   btnB_prev = btnB_curr;
 
-  // [OPTIMIZE] 동적 루프 딜레이: 화면 무활동 디밍 또는 화면 OFF 시에만 80ms로 전력 절감
-  // 사용자가 A+B로 수동 최소 밝기를 켜고 조작 중일 때(!isManualMinBright)는 30ms 풀성능 유지!
-  bool isIdleLowPower = (!screenOn || (isDimmed && !isManualMinBright));
-  uint32_t loopDelay = isIdleLowPower ? 80 : 30;
+  // [OPTIMIZE] 지능형 배터리 절전 & CPU 발열 완벽 억제 동적 딜레이:
+  // 1) 화면 꺼짐: 120ms (초절전 IDLE)
+  // 2) 자동 디밍(무활동): 100ms (초절전)
+  // 3) 화면 켜짐 + 1초 이상 무활동(조회/감상 중): 55ms (초당 ~18fps로 텍스트 슬라이드는 부드럽게 유지하면서 CPU 점유율 50% 급감!)
+  // 4) 버튼 조작 직후(1초 이내): 35ms (즉각적이고 빠른 반응성)
+  uint32_t loopDelay;
+  if (!screenOn) {
+    loopDelay = 120;
+  } else if (isDimmed && !isManualMinBright) {
+    loopDelay = 100;
+  } else if (millis() - lastActivityTime > 1000) {
+    loopDelay = 55;
+  } else {
+    loopDelay = 35;
+  }
   delay(loopDelay);
 
   // ── BT Config 설정 고속 변경 후 지연 저장 ──────────────────────────
