@@ -358,10 +358,17 @@ static lv_color_t buf[screenWidth * screenHeight / 10];
 
 // [NEW] 사운드 및 상태 표시용 전역 UI 객체 (SquareLine에 없는 커스텀 객체)
 lv_obj_t *ui_SoundLabel = nullptr;
+const int SECRET_MENU_COUNT = 9;
 lv_obj_t *ui_SecretContainer = nullptr;     // [NEW] 비밀 메뉴 전용 컨테이너
 lv_obj_t *ui_SecretListContainer = nullptr; // [NEW] 리스트 스크롤용 컨테이너
-lv_obj_t *ui_SecretLabel = nullptr;         // [NEW] 비밀 메뉴 전용 라벨
+struct SecretMenuItemRow {
+  lv_obj_t *numLabel = nullptr;
+  lv_obj_t *nameLabel = nullptr;
+};
+SecretMenuItemRow ui_SecretRows[SECRET_MENU_COUNT]; // [NEW] 비밀 메뉴 행 분리 라벨
 lv_obj_t *ui_SecretTitle = nullptr;         // [NEW] 비밀 메뉴 전용 제목
+lv_obj_t *ui_SecretDescContainer = nullptr; // [NEW] 하단 설명 컨테이너
+lv_obj_t *ui_SecretDescLabel = nullptr;     // [NEW] 하단 실시간 한글 설명 라벨
 
 lv_obj_t *ui_SecretSubContainer =
     nullptr; // [NEW] 비밀 서브 메뉴 전용 컨테이너 (7~10번 공유)
@@ -1142,88 +1149,180 @@ void updateSecretMenuDisplay() {
   if (!ui_SecretContainer) {
     ui_SecretContainer = lv_obj_create(lv_scr_act());
     lv_obj_set_size(ui_SecretContainer, 135, 240);
-    lv_obj_set_style_bg_color(ui_SecretContainer, lv_color_hex(0x000000), 0);
+    lv_obj_set_style_bg_color(ui_SecretContainer, lv_color_hex(0x181818), 0);
     lv_obj_set_style_bg_opa(ui_SecretContainer, LV_OPA_COVER, 0);
     lv_obj_set_style_border_width(ui_SecretContainer, 0, 0);
     lv_obj_set_style_radius(ui_SecretContainer, 0, 0);
     lv_obj_set_align(ui_SecretContainer, LV_ALIGN_CENTER);
     lv_obj_set_scrollbar_mode(ui_SecretContainer, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_set_style_pad_all(ui_SecretContainer, 0, 0);
 
+    // 상단 타이틀
     ui_SecretTitle = lv_label_create(ui_SecretContainer);
     lv_obj_set_width(ui_SecretTitle, 135);
     lv_obj_set_style_text_color(ui_SecretTitle, lv_color_hex(0xFFFF00), 0);
     lv_obj_set_style_text_font(ui_SecretTitle, &ui_font_Font1, 0);
     lv_obj_set_style_text_align(ui_SecretTitle, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_align(ui_SecretTitle, LV_ALIGN_TOP_MID);
-    lv_obj_set_style_pad_top(ui_SecretTitle, 10, 0);
-    lv_obj_set_style_bg_color(ui_SecretTitle, lv_color_hex(0x000000), 0);
-    lv_obj_set_style_bg_opa(ui_SecretTitle, LV_OPA_COVER, 0);
+    lv_obj_set_y(ui_SecretTitle, 3);
     lv_label_set_text(ui_SecretTitle, "SECRET MENU");
 
-    // 리스트 전용 컨테이너 (제목 아래 배치)
+    // 리스트 전용 컨테이너 (높이 168px, y: 24)
     ui_SecretListContainer = lv_obj_create(ui_SecretContainer);
-    lv_obj_set_size(ui_SecretListContainer, 135, 210);
+    lv_obj_set_size(ui_SecretListContainer, 135, 168);
     lv_obj_set_align(ui_SecretListContainer, LV_ALIGN_TOP_MID);
-    lv_obj_set_y(ui_SecretListContainer, 28);
+    lv_obj_set_y(ui_SecretListContainer, 24);
     lv_obj_set_style_bg_opa(ui_SecretListContainer, 0, 0);
     lv_obj_set_style_border_width(ui_SecretListContainer, 0, 0);
+    lv_obj_set_style_pad_all(ui_SecretListContainer, 0, 0);
     lv_obj_set_scrollbar_mode(ui_SecretListContainer, LV_SCROLLBAR_MODE_OFF);
 
-    ui_SecretLabel = lv_label_create(ui_SecretListContainer);
-    lv_obj_set_width(ui_SecretLabel, 135);
-    lv_obj_set_style_text_color(ui_SecretLabel, lv_color_hex(0xFFFFFF), 0);
-    lv_obj_set_style_text_font(ui_SecretLabel, &ui_font_Font1, 0);
-    lv_obj_set_style_text_align(ui_SecretLabel, LV_TEXT_ALIGN_LEFT, 0);
-    lv_obj_set_align(ui_SecretLabel, LV_ALIGN_TOP_LEFT);
-    lv_obj_set_style_pad_left(ui_SecretLabel, 0, 0); // 왼쪽으로 한 칸 이동 (5 -> 0)
+    for (int i = 0; i < SECRET_MENU_COUNT; i++) {
+      // 1. 번호 라벨 (x: 2, w: 18, 고정)
+      ui_SecretRows[i].numLabel = lv_label_create(ui_SecretListContainer);
+      lv_obj_set_width(ui_SecretRows[i].numLabel, 18);
+      lv_obj_set_style_text_font(ui_SecretRows[i].numLabel, &ui_font_Font1, 0);
+      lv_obj_set_style_text_align(ui_SecretRows[i].numLabel, LV_TEXT_ALIGN_LEFT, 0);
+      lv_label_set_long_mode(ui_SecretRows[i].numLabel, LV_LABEL_LONG_CLIP);
+      lv_obj_set_x(ui_SecretRows[i].numLabel, 2);
+      lv_obj_set_y(ui_SecretRows[i].numLabel, i * 18);
+
+      // 2. 메뉴 이름 라벨 (x: 22, w: 110, 우측 끝 132까지 꽉 채움)
+      ui_SecretRows[i].nameLabel = lv_label_create(ui_SecretListContainer);
+      lv_obj_set_width(ui_SecretRows[i].nameLabel, 110);
+      lv_obj_set_style_text_font(ui_SecretRows[i].nameLabel, &ui_font_Font1, 0);
+      lv_obj_set_style_text_align(ui_SecretRows[i].nameLabel, LV_TEXT_ALIGN_LEFT, 0);
+      lv_obj_set_x(ui_SecretRows[i].nameLabel, 22);
+      lv_obj_set_y(ui_SecretRows[i].nameLabel, i * 18);
+    }
+
+    // 하단 상세 설명 전용 패널 (y: -4, h: 36, 에메랄드 한글 전광판)
+    ui_SecretDescContainer = lv_obj_create(ui_SecretContainer);
+    lv_obj_set_size(ui_SecretDescContainer, 131, 36);
+    lv_obj_set_align(ui_SecretDescContainer, LV_ALIGN_BOTTOM_MID);
+    lv_obj_set_y(ui_SecretDescContainer, -4);
+    lv_obj_set_style_bg_color(ui_SecretDescContainer, lv_color_hex(0x101626), 0);
+    lv_obj_set_style_bg_opa(ui_SecretDescContainer, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_color(ui_SecretDescContainer, lv_color_hex(0x00AACC), 0);
+    lv_obj_set_style_border_width(ui_SecretDescContainer, 1, 0);
+    lv_obj_set_style_radius(ui_SecretDescContainer, 5, 0);
+    lv_obj_set_style_pad_all(ui_SecretDescContainer, 2, 0);
+    lv_obj_set_scrollbar_mode(ui_SecretDescContainer, LV_SCROLLBAR_MODE_OFF);
+
+    // 하단 실시간 한글 티커 라벨 (수직 중앙 배치)
+    ui_SecretDescLabel = lv_label_create(ui_SecretDescContainer);
+    lv_obj_set_width(ui_SecretDescLabel, 125);
+    lv_obj_set_style_text_color(ui_SecretDescLabel, lv_color_hex(0x00FFCC), 0);
+    lv_obj_set_style_text_font(ui_SecretDescLabel, &ui_font_Font16, 0);
+    lv_obj_set_style_text_align(ui_SecretDescLabel, LV_TEXT_ALIGN_LEFT, 0);
+    lv_obj_set_align(ui_SecretDescLabel, LV_ALIGN_CENTER);
+    lv_label_set_long_mode(ui_SecretDescLabel, LV_LABEL_LONG_SCROLL_CIRCULAR);
   }
 
   // 2. 비밀 메뉴 표시 및 텍스트 갱신
   lv_obj_clear_flag(ui_SecretContainer, LV_OBJ_FLAG_HIDDEN);
   lv_obj_move_to_index(ui_SecretContainer, -1); // 항상 최상단에 표시
 
-  String menuText = "";
-  const int secretMenuCount = 9; // [MOD] Added Stack Game
-  for (int i = 0; i < secretMenuCount; i++) {
-    menuText += (i == secretMenuIndex) ? ">" : " ";
+  struct SecretMenuItemData {
+    String shortName;
+    String fullName;
+    String descText;
+  };
 
-    if (i == 0)
-      menuText += "0. Cloud Mode";
-    else if (i == 1)
-      menuText += "1. WiFi Web";
-    else if (i == 2)
-      menuText += "2. Saved WiFi";
-    else if (i == 3)
-      menuText += "3. BT Config";
-    else if (i == 4)
-      menuText += "4. IR Remote";
-    else if (i == 5)
-      menuText += "5. IR Receiver";
-    else if (i == 6)
-      menuText += "6. IR Clone";
-    else if (i == 7)
-      menuText += "7. BT Walkie";
-    else if (i == 8)
-      menuText += "8. Stack Game"; // [NEW] 
+  SecretMenuItemData items[SECRET_MENU_COUNT];
 
-    menuText += "\n";
-  }
+  // 0. Cloud Mode
+  items[0].shortName = "Cloud Mode";
+  items[0].fullName  = "Cloud Word Sync Mode";
+  items[0].descText  = "[클라우드 모드] 온라인 단어장 및 날씨/일정 동기화";
 
-  menuText += "\nB : Next \nA : Enter";
-  lv_label_set_text(ui_SecretLabel, menuText.c_str());
-  lv_obj_set_style_text_line_space(
-      ui_SecretLabel, 3,
-      0); // 가독성을 위해 줄 간격을 3으로 복구 (BT Config와 동일)
+  // 1. WiFi Web
+  items[1].shortName = "WiFi Web";
+  items[1].fullName  = "WiFi Web Setup AP";
+  items[1].descText  = "[WiFi 웹 설정] 스마트폰/PC로 접속하여 WiFi 및 기기 설정";
 
-  // 0번 항목(BT Config)과 마찬가지로 메뉴가 많아질 때 선택 위치에 따라 스크롤
-  // 처리
+  // 2. Saved WiFi
+  items[2].shortName = "Saved WiFi";
+  items[2].fullName  = "Saved WiFi Connect";
+  items[2].descText  = "[저장된 WiFi] 등록된 공유기 탐색 및 자동 연결";
+
+  // 3. BT Config
+  items[3].shortName = "BT Config";
+  items[3].fullName  = "BT & System Config";
+  items[3].descText  = "[BT 설정 모드] 블루투스, 화면 밝기, 음량 등 기기 상세 설정";
+
+  // 4. IR Remote
+  items[4].shortName = "IR Remote";
+  items[4].fullName  = "IR Remote Control";
+  items[4].descText  = "[IR 리모컨] 등록된 TV/에어컨 적외선 리모컨 제어";
+
+  // 5. IR Receiver
+  items[5].shortName = "IR Receiver";
+  items[5].fullName  = "IR Signal Receiver";
+  items[5].descText  = "[IR 수신기] 가전 리모컨 신호 수신 및 코드 분석";
+
+  // 6. IR Clone
+  items[6].shortName = "IR Clone";
+  items[6].fullName  = "IR Signal Learn/Clone";
+  items[6].descText  = "[IR 복제기] 리모컨 신호 복제 및 버튼에 학습 저장";
+
+  // 7. BT Walkie
+  items[7].shortName = "BT Walkie";
+  items[7].fullName  = "BT Walkie-Talkie";
+  items[7].descText  = "[BT 워키토키] 기기 간 블루투스 무전 통신";
+
+  // 8. Stack Game
+  items[8].shortName = "Stack Game";
+  items[8].fullName  = "Stack Arcade Game";
+  items[8].descText  = "[스택 게임] 블록 쌓기 미니 아케이드 게임 플레이";
+
+  // 스크롤 오프셋 계산 (컨테이너 높이 168px, 각 항목 18px)
   int scrollY = 0;
   if (secretMenuIndex > 4) {
-    scrollY = (secretMenuIndex - 4) * 17;
+    scrollY = (secretMenuIndex - 4) * 18;
+    int maxScroll = SECRET_MENU_COUNT * 18 - 168;
+    if (maxScroll < 0) maxScroll = 0;
+    if (scrollY > maxScroll) scrollY = maxScroll;
   }
-  lv_obj_set_y(ui_SecretLabel, 5 - scrollY);
+  if (scrollY < 0) scrollY = 0;
+
+  for (int i = 0; i < SECRET_MENU_COUNT; i++) {
+    int yPos = i * 18 - scrollY;
+    lv_obj_set_y(ui_SecretRows[i].numLabel, yPos);
+    lv_obj_set_y(ui_SecretRows[i].nameLabel, yPos);
+
+    char numBuf[8];
+    snprintf(numBuf, sizeof(numBuf), "%d.", i); // 0. ~ 8. 기존 번호 형식 유지
+    lv_label_set_text(ui_SecretRows[i].numLabel, numBuf);
+
+    if (i == secretMenuIndex) {
+      // 선택 항목:
+      // 1) 번호는 밝은 노란색
+      lv_obj_set_style_text_color(ui_SecretRows[i].numLabel, lv_color_hex(0xFFFF00), 0);
+
+      // 2) 이름 라벨은 노란색 + 원형 슬라이드 롤링
+      lv_obj_set_style_text_color(ui_SecretRows[i].nameLabel, lv_color_hex(0xFFFF00), 0);
+      lv_label_set_long_mode(ui_SecretRows[i].nameLabel, LV_LABEL_LONG_SCROLL_CIRCULAR);
+      lv_label_set_text(ui_SecretRows[i].nameLabel, items[i].fullName.c_str());
+    } else {
+      // 비선택 항목:
+      // 1) 번호는 어두운 회색
+      lv_obj_set_style_text_color(ui_SecretRows[i].numLabel, lv_color_hex(0x666666), 0);
+
+      // 2) 이름 라벨은 회색 + 고정
+      lv_obj_set_style_text_color(ui_SecretRows[i].nameLabel, lv_color_hex(0xAAAAAA), 0);
+      lv_label_set_long_mode(ui_SecretRows[i].nameLabel, LV_LABEL_LONG_CLIP);
+      lv_label_set_text(ui_SecretRows[i].nameLabel, items[i].shortName.c_str());
+    }
+  }
+
+  // 하단 실시간 한글 설명 갱신
+  if (secretMenuIndex >= 0 && secretMenuIndex < SECRET_MENU_COUNT) {
+    lv_label_set_text(ui_SecretDescLabel, items[secretMenuIndex].descText.c_str());
+  }
+
   Serial.printf("[SECRET MENU] UI Updated selection: %d (scrollY: %d)\n",
-                secretMenuIndex + 1, scrollY);
+                secretMenuIndex, scrollY);
 }
 
 // ─────────────────────────────────────────────────────────
