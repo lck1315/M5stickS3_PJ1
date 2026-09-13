@@ -411,7 +411,12 @@ lv_obj_t *ui_IRCloneTitle = nullptr;
 const int BT_CONFIG_COUNT = 15;
 lv_obj_t *ui_BTConfigContainer = nullptr;     // [NEW] BT 설정 모드 컨테이너
 lv_obj_t *ui_BTConfigListContainer = nullptr; // [NEW] 리스트 스크롤용 컨테이너
-lv_obj_t *ui_BTConfigItemLabels[BT_CONFIG_COUNT] = {nullptr}; // [NEW] 항목별 라벨
+struct BTConfigItemRow {
+  lv_obj_t *numLabel = nullptr;
+  lv_obj_t *nameLabel = nullptr;
+  lv_obj_t *valLabel = nullptr;
+};
+BTConfigItemRow ui_BTConfigRows[BT_CONFIG_COUNT]; // [NEW] 각 항목별 번호/이름/값 분리 라벨
 lv_obj_t *ui_BTConfigTitle = nullptr;         // [NEW] 제목용 라벨
 lv_obj_t *ui_BTConfigDescContainer = nullptr; // [NEW] 하단 설명 컨테이너
 lv_obj_t *ui_BTConfigDescLabel = nullptr;     // [NEW] 하단 실시간 한글 설명 라벨
@@ -3355,12 +3360,29 @@ void updateBTConfigDisplay() {
     lv_obj_set_scrollbar_mode(ui_BTConfigListContainer, LV_SCROLLBAR_MODE_OFF);
 
     for (int i = 0; i < BT_CONFIG_COUNT; i++) {
-      ui_BTConfigItemLabels[i] = lv_label_create(ui_BTConfigListContainer);
-      lv_obj_set_width(ui_BTConfigItemLabels[i], 125);
-      lv_obj_set_style_text_font(ui_BTConfigItemLabels[i], &ui_font_Font1, 0);
-      lv_obj_set_style_text_align(ui_BTConfigItemLabels[i], LV_TEXT_ALIGN_LEFT, 0);
-      lv_obj_set_x(ui_BTConfigItemLabels[i], 5);
-      lv_obj_set_y(ui_BTConfigItemLabels[i], i * 18);
+      // 1. 번호 라벨 (x: 2, w: 20, 고정)
+      ui_BTConfigRows[i].numLabel = lv_label_create(ui_BTConfigListContainer);
+      lv_obj_set_width(ui_BTConfigRows[i].numLabel, 20);
+      lv_obj_set_style_text_font(ui_BTConfigRows[i].numLabel, &ui_font_Font1, 0);
+      lv_obj_set_style_text_align(ui_BTConfigRows[i].numLabel, LV_TEXT_ALIGN_LEFT, 0);
+      lv_obj_set_x(ui_BTConfigRows[i].numLabel, 2);
+      lv_obj_set_y(ui_BTConfigRows[i].numLabel, i * 18);
+
+      // 2. 설정 이름 라벨 (x: 23, w: 63, 선택 시 긴 이름 슬라이드)
+      ui_BTConfigRows[i].nameLabel = lv_label_create(ui_BTConfigListContainer);
+      lv_obj_set_width(ui_BTConfigRows[i].nameLabel, 63);
+      lv_obj_set_style_text_font(ui_BTConfigRows[i].nameLabel, &ui_font_Font1, 0);
+      lv_obj_set_style_text_align(ui_BTConfigRows[i].nameLabel, LV_TEXT_ALIGN_LEFT, 0);
+      lv_obj_set_x(ui_BTConfigRows[i].nameLabel, 23);
+      lv_obj_set_y(ui_BTConfigRows[i].nameLabel, i * 18);
+
+      // 3. 설정 값 라벨 (x: 87, w: 46, 우측 정렬, 고정)
+      ui_BTConfigRows[i].valLabel = lv_label_create(ui_BTConfigListContainer);
+      lv_obj_set_width(ui_BTConfigRows[i].valLabel, 46);
+      lv_obj_set_style_text_font(ui_BTConfigRows[i].valLabel, &ui_font_Font1, 0);
+      lv_obj_set_style_text_align(ui_BTConfigRows[i].valLabel, LV_TEXT_ALIGN_RIGHT, 0);
+      lv_obj_set_x(ui_BTConfigRows[i].valLabel, 87);
+      lv_obj_set_y(ui_BTConfigRows[i].valLabel, i * 18);
     }
 
     // 하단 상세 설명 및 가이드 패널 (y: 191, h: 47)
@@ -3376,7 +3398,7 @@ void updateBTConfigDisplay() {
     lv_obj_set_style_pad_all(ui_BTConfigDescContainer, 2, 0);
     lv_obj_set_scrollbar_mode(ui_BTConfigDescContainer, LV_SCROLLBAR_MODE_OFF);
 
-    // 하단 실시간 한글 티커 라벨 (위쪽 20px)
+    // 하단 실시간 한글 티커 라벨
     ui_BTConfigDescLabel = lv_label_create(ui_BTConfigDescContainer);
     lv_obj_set_width(ui_BTConfigDescLabel, 125);
     lv_obj_set_style_text_color(ui_BTConfigDescLabel, lv_color_hex(0x00FFCC), 0);
@@ -3400,109 +3422,110 @@ void updateBTConfigDisplay() {
   lv_obj_clear_flag(ui_BTConfigContainer, LV_OBJ_FLAG_HIDDEN);
   lv_obj_move_to_index(ui_BTConfigContainer, -1);
 
-  struct ConfigItemInfo {
-    String shortText;
-    String fullText;
+  struct ConfigItemData {
+    String shortName;
+    String fullName;
+    String valText;
     String descText;
   };
 
-  ConfigItemInfo items[BT_CONFIG_COUNT];
+  ConfigItemData items[BT_CONFIG_COUNT];
 
-  // 0. Device Name
-  items[0].shortText = " Dev: " + String(BT_DEVICE_NAME);
-  items[0].fullText  = "> Device Name: " + String(BT_DEVICE_NAME);
+  // 1. Device Name
+  items[0].shortName = "DevName";
+  items[0].fullName  = "Device Name";
+  items[0].valText   = String(BT_DEVICE_NAME);
   items[0].descText  = "[기기 이름] 블루투스 검색 시 표시되는 기기명";
 
-  // 1. Bluetooth
-  items[1].shortText = (bluetoothEnabled) ? " BT: ON" : " BT: OFF";
-  items[1].fullText  = (bluetoothEnabled) ? "> Bluetooth: ON" : "> Bluetooth: OFF";
+  // 2. Bluetooth
+  items[1].shortName = "BT";
+  items[1].fullName  = "Bluetooth";
+  items[1].valText   = (bluetoothEnabled) ? "ON" : "OFF";
   items[1].descText  = "[블루투스] 스마트폰 연결 및 무선 제어 ON/OFF";
 
-  // 2. Sound
-  items[2].shortText = (soundEnabled) ? " Sound: ON" : " Sound: OFF";
-  items[2].fullText  = (soundEnabled) ? "> Sound Buzzer: ON" : "> Sound Buzzer: OFF";
+  // 3. Sound
+  items[2].shortName = "Sound";
+  items[2].fullName  = "Sound Buzzer";
+  items[2].valText   = (soundEnabled) ? "ON" : "OFF";
   items[2].descText  = "[효과음] 버튼 및 동작 알림 부저음 ON/OFF";
 
-  // 3. Volume
+  // 4. Volume
   {
     Preferences pref;
     prefsBegin(pref, "settings", true);
     int v = pref.getInt("vol", 30);
     pref.end();
-    items[3].shortText = " Vol: " + String(v);
-    items[3].fullText  = "> Buzzer Volume: " + String(v);
+    items[3].shortName = "Volume";
+    items[3].fullName  = "Buzzer Volume";
+    items[3].valText   = String(v);
     items[3].descText  = "[볼륨] 효과음 부저 소리 크기 조절 (0~100)";
   }
 
-  // 4. Max Brightness
-  items[4].shortText = " MaxBri: " + String(current_brightness);
-  items[4].fullText  = "> Max Brightness: " + String(current_brightness);
+  // 5. Max Brightness
+  items[4].shortName = "MaxBri";
+  items[4].fullName  = "Max Brightness";
+  items[4].valText   = String(current_brightness);
   items[4].descText  = "[최대 밝기] 평상시 사용하는 화면 밝기 (10~255)";
 
-  // 5. Min Brightness
-  items[5].shortText = " MinBri: " + String(min_brightness);
-  items[5].fullText  = "> Min Brightness: " + String(min_brightness);
+  // 6. Min Brightness
+  items[5].shortName = "MinBri";
+  items[5].fullName  = "Min Brightness";
+  items[5].valText   = String(min_brightness);
   items[5].descText  = "[최소 밝기] A+B 버튼 또는 절전 시 적용 밝기 (5~255)";
 
-  // 6. Dim Time
-  if (dimTimeSec > 0) {
-    items[6].shortText = " DimTime: " + String(dimTimeSec) + "s";
-    items[6].fullText  = "> Auto Dimming: " + String(dimTimeSec) + "s";
-  } else {
-    items[6].shortText = " DimTime: OFF";
-    items[6].fullText  = "> Auto Dimming: OFF";
-  }
-  items[6].descText = "[자동 디밍] 미입력 시 최소밝기 전환 대기시간";
+  // 7. Dim Time
+  items[6].shortName = "DimTime";
+  items[6].fullName  = "Auto Dimming";
+  items[6].valText   = (dimTimeSec > 0) ? String(dimTimeSec) + "s" : "OFF";
+  items[6].descText  = "[자동 디밍] 미입력 시 최소밝기 전환 대기시간";
 
-  // 7. Auto Time
-  if (autoTransitionEnabled) {
-    items[7].shortText = " Auto: " + String(autoTransitionInterval / 1000) + "s";
-    items[7].fullText  = "> Auto Word Interval: " + String(autoTransitionInterval / 1000) + "s";
-  } else {
-    items[7].shortText = " Auto: OFF";
-    items[7].fullText  = "> Auto Word Interval: OFF";
-  }
-  items[7].descText = "[단어 자동 넘김] 다음 단어로 자동 전환되는 간격 시간";
+  // 8. Auto Time
+  items[7].shortName = "Auto";
+  items[7].fullName  = "Auto Word Flip";
+  items[7].valText   = (autoTransitionEnabled) ? String(autoTransitionInterval / 1000) + "s" : "OFF";
+  items[7].descText  = "[단어 자동 넘김] 다음 단어로 자동 전환되는 간격 시간";
 
-  // 8. Slim Time
-  if (slimModeTime > 0) {
-    items[8].shortText = " Slim: " + String(slimModeTime) + "m";
-    items[8].fullText  = "> Sleep Screen Off: " + String(slimModeTime) + "m";
-  } else {
-    items[8].shortText = " Slim: OFF";
-    items[8].fullText  = "> Sleep Screen Off: OFF";
-  }
-  items[8].descText = "[화면 끄기 절전] 미입력 시 화면 완전히 꺼지는 대기시간";
+  // 9. Slim Time
+  items[8].shortName = "Slim";
+  items[8].fullName  = "Sleep Screen Off";
+  items[8].valText   = (slimModeTime > 0) ? String(slimModeTime) + "m" : "OFF";
+  items[8].descText  = "[화면 끄기 절전] 미입력 시 화면 완전히 꺼지는 대기시간";
 
-  // 9. LED
+  // 10. LED
   bool ledOn = (digitalRead(10) == LOW);
-  items[9].shortText = ledOn ? " LED: ON" : " LED: OFF";
-  items[9].fullText  = ledOn ? "> Front Red LED: ON" : "> Front Red LED: OFF";
+  items[9].shortName = "LED";
+  items[9].fullName  = "Front Red LED";
+  items[9].valText   = ledOn ? "ON" : "OFF";
   items[9].descText  = "[전면 LED] 앞면 빨간색 LED 표시등 켜기/끄기";
 
-  // 10. Auto Dir
-  items[10].shortText = (btnADirectionForward) ? " AutoDir: FWD" : " AutoDir: BWD";
-  items[10].fullText  = (btnADirectionForward) ? "> Word Direction: FWD" : "> Word Direction: BWD";
+  // 11. Auto Dir
+  items[10].shortName = "AutoDir";
+  items[10].fullName  = "Word Direction";
+  items[10].valText   = (btnADirectionForward) ? "FWD" : "BWD";
   items[10].descText  = "[단어 넘김 방향] 단어 넘김 기본 방향 (정방향/역방향)";
 
-  // 11. BT Hold Time
-  items[11].shortText = " BTHold: " + String(btHoldTime) + "s";
-  items[11].fullText  = "> BT Menu Hold Time: " + String(btHoldTime) + "s";
+  // 12. BT Hold Time
+  items[11].shortName = "BTHold";
+  items[11].fullName  = "BT Menu Hold";
+  items[11].valText   = String(btHoldTime) + "s";
   items[11].descText  = "[BT설정 진입] B버튼 길게 눌러 BT메뉴 들어가는 시간";
 
-  // 12. Secret Hold Time
-  items[12].shortText = " SecHold: " + String(secretHoldTime) + "s";
-  items[12].fullText  = "> Secret Hold Time: " + String(secretHoldTime) + "s";
+  // 13. Secret Hold Time
+  items[12].shortName = "SecHold";
+  items[12].fullName  = "Secret Hold";
+  items[12].valText   = String(secretHoldTime) + "s";
   items[12].descText  = "[시크릿 모드] B버튼 길게 눌러 시크릿모드 들어가는 시간";
 
-  // 13. A Dir Time
-  items[13].shortText = " ADir: " + String(aBtnDirTime) + "s";
-  items[13].fullText  = "> A Long: Flip Dir Time: " + String(aBtnDirTime) + "s";
+  // 14. A Dir Time
+  items[13].shortName = "ADir";
+  items[13].fullName  = "A Long: Flip Dir";
+  items[13].valText   = String(aBtnDirTime) + "s";
   items[13].descText  = "[A버튼 방향반전] A버튼 길게 눌러 넘김방향 바꿀 때 시간";
 
-  // 14. A Auto Time
-  items[14].shortText = " AAuto: " + String(aBtnAutoTime) + "s";
-  items[14].fullText  = "> A Long: Auto Run Time: " + String(aBtnAutoTime) + "s";
+  // 15. A Auto Time
+  items[14].shortName = "AAuto";
+  items[14].fullName  = "A Long: Auto Run";
+  items[14].valText   = String(aBtnAutoTime) + "s";
   items[14].descText  = "[A버튼 자동실행] A버튼 길게 눌러 단어 자동넘김 켤 때 시간";
 
   // 스크롤 오프셋 계산 (컨테이너 높이 165px, 각 항목 18px)
@@ -3515,15 +3538,32 @@ void updateBTConfigDisplay() {
   if (scrollY < 0) scrollY = 0;
 
   for (int i = 0; i < BT_CONFIG_COUNT; i++) {
-    lv_obj_set_y(ui_BTConfigItemLabels[i], i * 18 - scrollY);
+    int yPos = i * 18 - scrollY;
+    lv_obj_set_y(ui_BTConfigRows[i].numLabel, yPos);
+    lv_obj_set_y(ui_BTConfigRows[i].nameLabel, yPos);
+    lv_obj_set_y(ui_BTConfigRows[i].valLabel, yPos);
+
+    char numBuf[8];
+    snprintf(numBuf, sizeof(numBuf), "%d.", i + 1);
+    lv_label_set_text(ui_BTConfigRows[i].numLabel, numBuf);
+    lv_label_set_text(ui_BTConfigRows[i].valLabel, items[i].valText.c_str());
+
     if (i == btConfigIndex) {
-      lv_obj_set_style_text_color(ui_BTConfigItemLabels[i], lv_color_hex(0xFFFF00), 0);
-      lv_label_set_long_mode(ui_BTConfigItemLabels[i], LV_LABEL_LONG_SCROLL_CIRCULAR);
-      lv_label_set_text(ui_BTConfigItemLabels[i], items[i].fullText.c_str());
+      // 선택 항목 하이라이트 (노란색 이름 + 시안색 값)
+      lv_obj_set_style_text_color(ui_BTConfigRows[i].numLabel, lv_color_hex(0xFFFF00), 0);
+      lv_obj_set_style_text_color(ui_BTConfigRows[i].nameLabel, lv_color_hex(0xFFFF00), 0);
+      lv_obj_set_style_text_color(ui_BTConfigRows[i].valLabel, lv_color_hex(0x00FFFF), 0);
+
+      lv_label_set_long_mode(ui_BTConfigRows[i].nameLabel, LV_LABEL_LONG_SCROLL_CIRCULAR);
+      lv_label_set_text(ui_BTConfigRows[i].nameLabel, items[i].fullName.c_str());
     } else {
-      lv_obj_set_style_text_color(ui_BTConfigItemLabels[i], lv_color_hex(0xBBBBBB), 0);
-      lv_label_set_long_mode(ui_BTConfigItemLabels[i], LV_LABEL_LONG_CLIP);
-      lv_label_set_text(ui_BTConfigItemLabels[i], items[i].shortText.c_str());
+      // 비선택 항목
+      lv_obj_set_style_text_color(ui_BTConfigRows[i].numLabel, lv_color_hex(0x666666), 0);
+      lv_obj_set_style_text_color(ui_BTConfigRows[i].nameLabel, lv_color_hex(0xAAAAAA), 0);
+      lv_obj_set_style_text_color(ui_BTConfigRows[i].valLabel, lv_color_hex(0xAAAAAA), 0);
+
+      lv_label_set_long_mode(ui_BTConfigRows[i].nameLabel, LV_LABEL_LONG_CLIP);
+      lv_label_set_text(ui_BTConfigRows[i].nameLabel, items[i].shortName.c_str());
     }
   }
 
