@@ -420,7 +420,6 @@ BTConfigItemRow ui_BTConfigRows[BT_CONFIG_COUNT]; // [NEW] 각 항목별 번호/
 lv_obj_t *ui_BTConfigTitle = nullptr;         // [NEW] 제목용 라벨
 lv_obj_t *ui_BTConfigDescContainer = nullptr; // [NEW] 하단 설명 컨테이너
 lv_obj_t *ui_BTConfigDescLabel = nullptr;     // [NEW] 하단 실시간 한글 설명 라벨
-lv_obj_t *ui_BTConfigKeyGuideLabel = nullptr; // [NEW] 하단 버튼 가이드 라벨
 
 int btConfigIndex = 0; // [NEW] BT 설정 항목 인덱스 (0~5)
 
@@ -3349,9 +3348,9 @@ void updateBTConfigDisplay() {
     lv_obj_set_y(ui_BTConfigTitle, 3);
     lv_label_set_text(ui_BTConfigTitle, "BT CONFIG");
 
-    // 리스트 전용 컨테이너 (높이 165px, y: 24)
+    // 리스트 전용 컨테이너 (높이 168px, y: 24)
     ui_BTConfigListContainer = lv_obj_create(ui_BTConfigContainer);
-    lv_obj_set_size(ui_BTConfigListContainer, 135, 165);
+    lv_obj_set_size(ui_BTConfigListContainer, 135, 168);
     lv_obj_set_align(ui_BTConfigListContainer, LV_ALIGN_TOP_MID);
     lv_obj_set_y(ui_BTConfigListContainer, 24);
     lv_obj_set_style_bg_opa(ui_BTConfigListContainer, 0, 0);
@@ -3360,63 +3359,55 @@ void updateBTConfigDisplay() {
     lv_obj_set_scrollbar_mode(ui_BTConfigListContainer, LV_SCROLLBAR_MODE_OFF);
 
     for (int i = 0; i < BT_CONFIG_COUNT; i++) {
-      // 1. 번호 라벨 (x: 2, w: 20, 고정)
+      // 1. 번호 라벨 (x: 2, w: 22, 고정, 줄바꿈 방지)
       ui_BTConfigRows[i].numLabel = lv_label_create(ui_BTConfigListContainer);
-      lv_obj_set_width(ui_BTConfigRows[i].numLabel, 20);
+      lv_obj_set_width(ui_BTConfigRows[i].numLabel, 22);
       lv_obj_set_style_text_font(ui_BTConfigRows[i].numLabel, &ui_font_Font1, 0);
       lv_obj_set_style_text_align(ui_BTConfigRows[i].numLabel, LV_TEXT_ALIGN_LEFT, 0);
+      lv_label_set_long_mode(ui_BTConfigRows[i].numLabel, LV_LABEL_LONG_CLIP);
       lv_obj_set_x(ui_BTConfigRows[i].numLabel, 2);
       lv_obj_set_y(ui_BTConfigRows[i].numLabel, i * 18);
 
-      // 2. 설정 이름 라벨 (x: 23, w: 63, 선택 시 긴 이름 슬라이드)
+      // 2. 설정 이름 라벨 (x: 24, w: 50, 선택 시 긴 이름 슬라이드)
       ui_BTConfigRows[i].nameLabel = lv_label_create(ui_BTConfigListContainer);
-      lv_obj_set_width(ui_BTConfigRows[i].nameLabel, 63);
+      lv_obj_set_width(ui_BTConfigRows[i].nameLabel, 50);
       lv_obj_set_style_text_font(ui_BTConfigRows[i].nameLabel, &ui_font_Font1, 0);
       lv_obj_set_style_text_align(ui_BTConfigRows[i].nameLabel, LV_TEXT_ALIGN_LEFT, 0);
-      lv_obj_set_x(ui_BTConfigRows[i].nameLabel, 23);
+      lv_label_set_long_mode(ui_BTConfigRows[i].nameLabel, LV_LABEL_LONG_CLIP);
+      lv_obj_set_x(ui_BTConfigRows[i].nameLabel, 24);
       lv_obj_set_y(ui_BTConfigRows[i].nameLabel, i * 18);
 
-      // 3. 설정 값 라벨 (x: 87, w: 46, 우측 정렬, 고정)
+      // 3. 설정 값 라벨 (x: 74, w: 59, 우측 정렬, 고정, 줄바꿈 방지)
       ui_BTConfigRows[i].valLabel = lv_label_create(ui_BTConfigListContainer);
-      lv_obj_set_width(ui_BTConfigRows[i].valLabel, 46);
+      lv_obj_set_width(ui_BTConfigRows[i].valLabel, 59);
       lv_obj_set_style_text_font(ui_BTConfigRows[i].valLabel, &ui_font_Font1, 0);
       lv_obj_set_style_text_align(ui_BTConfigRows[i].valLabel, LV_TEXT_ALIGN_RIGHT, 0);
-      lv_obj_set_x(ui_BTConfigRows[i].valLabel, 87);
+      lv_label_set_long_mode(ui_BTConfigRows[i].valLabel, LV_LABEL_LONG_CLIP);
+      lv_obj_set_x(ui_BTConfigRows[i].valLabel, 74);
       lv_obj_set_y(ui_BTConfigRows[i].valLabel, i * 18);
     }
 
-    // 하단 상세 설명 및 가이드 패널 (y: 191, h: 47)
+    // 하단 상세 설명 전용 패널 (y: -4, h: 36, 단독 전광판으로 시원하게 표시)
     ui_BTConfigDescContainer = lv_obj_create(ui_BTConfigContainer);
-    lv_obj_set_size(ui_BTConfigDescContainer, 131, 46);
+    lv_obj_set_size(ui_BTConfigDescContainer, 131, 36);
     lv_obj_set_align(ui_BTConfigDescContainer, LV_ALIGN_BOTTOM_MID);
-    lv_obj_set_y(ui_BTConfigDescContainer, -2);
+    lv_obj_set_y(ui_BTConfigDescContainer, -4);
     lv_obj_set_style_bg_color(ui_BTConfigDescContainer, lv_color_hex(0x101626), 0);
     lv_obj_set_style_bg_opa(ui_BTConfigDescContainer, LV_OPA_COVER, 0);
     lv_obj_set_style_border_color(ui_BTConfigDescContainer, lv_color_hex(0x00AACC), 0);
     lv_obj_set_style_border_width(ui_BTConfigDescContainer, 1, 0);
-    lv_obj_set_style_radius(ui_BTConfigDescContainer, 4, 0);
+    lv_obj_set_style_radius(ui_BTConfigDescContainer, 5, 0);
     lv_obj_set_style_pad_all(ui_BTConfigDescContainer, 2, 0);
     lv_obj_set_scrollbar_mode(ui_BTConfigDescContainer, LV_SCROLLBAR_MODE_OFF);
 
-    // 하단 실시간 한글 티커 라벨
+    // 하단 실시간 한글 티커 라벨 (수직 중앙 배치로 글자가 크고 선명하게 보임)
     ui_BTConfigDescLabel = lv_label_create(ui_BTConfigDescContainer);
     lv_obj_set_width(ui_BTConfigDescLabel, 125);
     lv_obj_set_style_text_color(ui_BTConfigDescLabel, lv_color_hex(0x00FFCC), 0);
     lv_obj_set_style_text_font(ui_BTConfigDescLabel, &ui_font_Font16, 0);
     lv_obj_set_style_text_align(ui_BTConfigDescLabel, LV_TEXT_ALIGN_LEFT, 0);
-    lv_obj_set_align(ui_BTConfigDescLabel, LV_ALIGN_TOP_MID);
-    lv_obj_set_y(ui_BTConfigDescLabel, 1);
+    lv_obj_set_align(ui_BTConfigDescLabel, LV_ALIGN_CENTER);
     lv_label_set_long_mode(ui_BTConfigDescLabel, LV_LABEL_LONG_SCROLL_CIRCULAR);
-
-    // 하단 조작 안내 라벨 (아래쪽)
-    ui_BTConfigKeyGuideLabel = lv_label_create(ui_BTConfigDescContainer);
-    lv_obj_set_width(ui_BTConfigKeyGuideLabel, 125);
-    lv_obj_set_style_text_color(ui_BTConfigKeyGuideLabel, lv_color_hex(0x8899AA), 0);
-    lv_obj_set_style_text_font(ui_BTConfigKeyGuideLabel, &ui_font_Font1, 0);
-    lv_obj_set_style_text_align(ui_BTConfigKeyGuideLabel, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_set_align(ui_BTConfigKeyGuideLabel, LV_ALIGN_BOTTOM_MID);
-    lv_obj_set_y(ui_BTConfigKeyGuideLabel, 0);
-    lv_label_set_text(ui_BTConfigKeyGuideLabel, "(A:Change, B:Next)");
   }
 
   lv_obj_clear_flag(ui_BTConfigContainer, LV_OBJ_FLAG_HIDDEN);
@@ -3432,7 +3423,7 @@ void updateBTConfigDisplay() {
   ConfigItemData items[BT_CONFIG_COUNT];
 
   // 1. Device Name
-  items[0].shortName = "DevName";
+  items[0].shortName = "Dev";
   items[0].fullName  = "Device Name";
   items[0].valText   = String(BT_DEVICE_NAME);
   items[0].descText  = "[기기 이름] 블루투스 검색 시 표시되는 기기명";
@@ -3455,7 +3446,7 @@ void updateBTConfigDisplay() {
     prefsBegin(pref, "settings", true);
     int v = pref.getInt("vol", 30);
     pref.end();
-    items[3].shortName = "Volume";
+    items[3].shortName = "Vol";
     items[3].fullName  = "Buzzer Volume";
     items[3].valText   = String(v);
     items[3].descText  = "[볼륨] 효과음 부저 소리 크기 조절 (0~100)";
@@ -3528,11 +3519,11 @@ void updateBTConfigDisplay() {
   items[14].valText   = String(aBtnAutoTime) + "s";
   items[14].descText  = "[A버튼 자동실행] A버튼 길게 눌러 단어 자동넘김 켤 때 시간";
 
-  // 스크롤 오프셋 계산 (컨테이너 높이 165px, 각 항목 18px)
+  // 스크롤 오프셋 계산 (컨테이너 높이 168px, 각 항목 18px)
   int scrollY = 0;
   if (btConfigIndex > 4) {
     scrollY = (btConfigIndex - 4) * 18;
-    int maxScroll = BT_CONFIG_COUNT * 18 - 165;
+    int maxScroll = BT_CONFIG_COUNT * 18 - 168;
     if (scrollY > maxScroll) scrollY = maxScroll;
   }
   if (scrollY < 0) scrollY = 0;
